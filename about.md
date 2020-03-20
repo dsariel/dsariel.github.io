@@ -8,4 +8,4 @@ I'll start with env setup for Openstack Swift developers, followed by notes on S
 architecture, containder and account DB and other topics.
 
 ### Contact me
-dsariel [#openstack-swift channel](https://webchat.freenode.net/#openstack-swift) at Freenode (irc.freenode.net)
+dsariel [#openstack-swift](https://webchat.freenode.net/#openstack-swift) channel at Freenode (irc.freenode.net)
