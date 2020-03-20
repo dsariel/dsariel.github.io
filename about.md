@@ -4,12 +4,8 @@ title: About
 permalink: /about/
 ---
 
-Some information about you!
-
-### More Information
-
-A place to include any other types of information that you'd like to include about yourself.
+I'll start with env setup for Openstack Swift developers, followed by notes on Swift
+architecture, containder and account DB and other aspects as a call of duty.
 
 ### Contact me
-
-[email@domain.com](mailto:email@domain.com)
+dsariel [#openstack-swift channel](https://webchat.freenode.net/#openstack-swift) at Freenode (irc.freenode.net)
