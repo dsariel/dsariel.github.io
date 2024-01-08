@@ -1,12 +1,19 @@
-github_users:
-  - torvalds
-  - alshedivat
-
 github_repos:
-  - alshedivat/al-folio
-  - twbs/bootstrap
-  - jekyll/jekyll
-  - jquery/jquery
-  - FortAwesome/Font-Awesome
-  - jpswalsh/academicons
-  - mathjax/MathJax
+  - https://url.corp.redhat.com/eodweb
+  - https://url.corp.redhat.com/atropos
+  - https://url.corp.redhat.com/ci-framework-jobs
+  - https://url.corp.redhat.com/ci-framework
+  - openstack-k8s-operators/ci-framework
+  - openstack-k8s-operators/architecture
+  - rhos-infra/reportportal
+  - rhos-infra/patch-components
+  - rhos-infra/shade_janitor
+  - rhos-infra/tripleo
+  - rhos-infra/containers-sanity
+  - rhos-infra/tempest
+  - rhos-infra/packstack
+  - rhos-infra/ir-plugin-ceph
+  - dsariel/swiftacular
+  - RedHatCRE/cibyl
+  - RedHatCRE/znoyder
+  - RedHatCRE/toolbox
