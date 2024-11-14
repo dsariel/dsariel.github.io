@@ -6,6 +6,20 @@ description: OpenShift container runtime poses restrictions, and simple applicat
 tags: OpenShift crc application development CodeReadyContainers
 categories: sample-posts
 ---
+
+# How to install Red Hat OpenShift Local on your laptop
+Since OpenShift's container runtime poses constraints, one can't simply create a `Containerfile` (or `Dockerfile`) and test a containerized application with Podman (or Docker), expecting it to be flawlessly deployed and work on OpenShift just because it worked on the Podman (or Docker) runtime.
+
+One possible approach (subject to limitations described below) is installing an all-in-one version of OpenShift and proceeding with the deployment, testing, and debugging cycles on the local machine.
+
+Using a local instance of OpenShift can save a considerable amount of time by eliminating the step of pushing large container images to a container registry. This allows you to create a container image locally and perform an OpenShift application deployment directly from that local image. However, this all-in-one version of OpenShift has limitations compared to a full-fledged OpenShift deployment across multiple nodes with dedicated hardware. For more details, see the [Red Hat CodeReady Containers documentation](https://docs.redhat.com/en/documentation/red_hat_codeready_containers/1.0/html/getting_started_guide/getting-started-with-codeready-containers_gsg#differences_with_a_production_openshift_install).
+
+If your application requires features that are not supported by the all-in-one version, this method may not work for those applications (or may not test all the features of the application). Nevertheless, it can be useful for an initial kickstart and a subset of features.
+
+With that said, follow the steps to deploy CRC locally as outlined in the [Red Hat OpenShift Local documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_local/2.43/html/getting_started_guide/index).
+
+
+
 # Understanding Security Context Constraints (SCCs) in OpenShift
 
 In OpenShift, Security Context Constraints (SCCs) play a crucial role in controlling the permissions of containers and maintaining the security of the cluster. To grasp the significance of SCCs, it’s essential to understand how containers interact with protected Linux functions.
