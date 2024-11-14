@@ -127,7 +127,6 @@ bing_site_verification:  # out your bing-site-verification ID (Bing Webmaster)
 
 blog_name: Memory Stash # blog_name will be displayed in your blog page
 blog_description: "The faintest ink is more powerful than the strongest memory" presumably a Chinese proverb
-blog_description: a simple whitespace theme for academics
 permalink: /blog/:year/:title/
 
 # Pagination
