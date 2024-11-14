@@ -2,7 +2,7 @@
 layout: page
 permalink: /repositories/
 title: repositories
-description: A chill list of repos where all the magic happens in the Operating Systems Workshop.
+description: From the past and present 
 nav: true
 nav_order: 4
 ---
