@@ -1,4 +1,4 @@
 User-agent: *
 Disallow:
 
-Sitemap: https://davidsaopenu.github.io/sitemap.xml
+Sitemap: https://dsariel.github.io/sitemap.xml
