@@ -1,8 +1,8 @@
 ---
 layout: post
 title:  HOWTO develop an OpenShift application
-date:   2023-11-11 16:40:16
-description: march & april, looking forward to summer
+date:   2024-11-11 16:40:16
+description: OpenShift container runtime poses restrictions, and simple application containerization will not work in the vast majority of cases. In this post, steps are described to download CRC locally, containerize an application, apply necessary adjustments to overcome the restrictions, and push the resulting tested image to a registry, from which a production OpenShift instance will pull it. 
 tags: OpenShift crc application development CodeReadyContainers
 categories: sample-posts
 ---
