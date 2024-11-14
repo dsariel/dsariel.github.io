@@ -12,11 +12,19 @@ Since OpenShift's container runtime poses constraints, one can't simply create a
 
 One possible approach (subject to limitations described below) is installing an all-in-one version of OpenShift and proceeding with the deployment, testing, and debugging cycles on the local machine.
 
-Using a local instance of OpenShift can save a considerable amount of time by eliminating the step of pushing large container images to a container registry. This allows you to create a container image locally and perform an OpenShift application deployment directly from that local image. However, this all-in-one version of OpenShift has limitations compared to a full-fledged OpenShift deployment across multiple nodes with dedicated hardware. For more details, see the [Red Hat CodeReady Containers documentation](https://docs.redhat.com/en/documentation/red_hat_codeready_containers/1.0/html/getting_started_guide/getting-started-with-codeready-containers_gsg#differences_with_a_production_openshift_install).
+Using a local instance of OpenShift can save a considerable amount of time by eliminating the step of pushing large container images to a container registry. This allows you to create a container image locally and perform an OpenShift application deployment directly from that local image. However, this all-in-one version of OpenShift has limitations compared to a full-fledged OpenShift deployment across multiple nodes with dedicated hardware. For more details, see the [Red Hat CodeReady Containers documentation](https://docs.redhat.com/en/documentation/red_hat_codeready_containers/2.0/html/getting_started_guide/introducing-codeready-containers_gsg#differences-from-production-openshift-install_gsg).
 
 If your application requires features that are not supported by the all-in-one version, this method may not work for those applications (or may not test all the features of the application). Nevertheless, it can be useful for an initial kickstart and a subset of features.
 
-With that said, follow the steps to deploy CRC locally as outlined in the [Red Hat OpenShift Local documentation](https://docs.redhat.com/en/documentation/red_hat_openshift_local/2.43/html/getting_started_guide/index).
+With that said, follow the steps to deploy CRC locally as outlined in the [Red Hat OpenShift Local documentation](https://docs.redhat.com/en/documentation/red_hat_codeready_containers/2.0/html/getting_started_guide/index). I have choosen to authorize RedHat SSO: 
+
+```
+"Red Hat SSO by rh-sso wants to access your github_user account" 
+```
+
+and after filling a short form with details required to create a RedHat account, I was able to download the latest version of the OpenShift Local along with `pull secret`. 
+
+
 
 
 
@@ -77,6 +85,28 @@ SCCs can either be predefined or custom-made by cluster administrators. Here’s
 
 - **Restricted SCC**: This built-in SCC in OpenShift enforces strict limitations. It drops most capabilities and restricts user and group permissions, ensuring minimal access beyond default settings.
 - **Custom SCC**: Administrators can create tailored SCCs that provide specific permissions, such as allowing a user ID range (e.g., 1000-2000) or granting additional capabilities.
+
+
+```yaml
+containers:
+  - resources: {}
+    terminationMessagePath: /dev/termination-log
+    name: demo
+    command:
+      - tox
+      - -v
+      - -e dev
+    securityContext:
+      capabilities:
+        drop:
+          - ALL
+      runAsUser: 1234
+      runAsGroup: 5678
+      runAsNonRoot: true
+      allowPrivilegeEscalation: false
+```
+
+Let me know if you need any additional formatting or edits!
 
 ## Conclusion
 
