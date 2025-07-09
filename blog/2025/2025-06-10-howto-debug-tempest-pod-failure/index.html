@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd"> <html><body> <h1 id="debugging-openstack-tempest-pods-in-openshift-series-failure-to-import-a-997mb-qcow2-image">Debugging OpenStack Tempest Pods in OpenShift Series: Failure to Import a 997MB qcow2 Image</h1> <p>I was running OpenStack Tempest tests in my OpenShift cluster when I hit a problem. The pod <code class="language-plaintext highlighter-rouge">tempest-tests-tempest-workflow-step-00-multi-thread-testing</code> failed during image import. The issue was with a 997MB qcow2 image that would not import properly. Here’s how I solved this step by step.</p> <h2 id="the-problem">The Problem</h2> <p>My Tempest pod was failing during the image creation phase. The logs showed it was stuck trying to import a 997MB qcow2 image, and it kept timing out after 300 seconds. This is a common problem when working with large images.</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Current status: importing. Waiting <span class="k">for </span>image to become active...
+</code></pre></div></div> <p>This message was just looping forever until the pod gave up and died.</p> <h2 id="step-1-you-cannot-exec-into-a-failed-pod">Step 1: You Cannot Exec Into a Failed Pod</h2> <p>First thing - you cannot exec into a failed pod:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>oc <span class="nb">exec</span> <span class="nt">-it</span> tempest-tests-tempest-workflow-step-00-multi-thread-testing <span class="nt">--</span> /bin/bash
+</code></pre></div></div> <p>And got this error message:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>error: cannot exec into a container in a completed pod; current phase is Failed
+</code></pre></div></div> <p>This makes sense. Failed pods do not respond to commands.</p> <h2 id="step-2-check-the-pod-logs-and-events">Step 2: Check the Pod Logs and Events</h2> <p>Before doing anything else, I needed to understand what happened:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Get the pod logs</span>
+oc logs tempest-tests-tempest-workflow-step-00-multi-thread-testing
+
+<span class="c"># Get detailed information about the pod</span>
+oc describe pod tempest-tests-tempest-workflow-step-00-multi-thread-testing
+
+<span class="c"># Check events related to this pod</span>
+oc get events <span class="nt">--field-selector</span> involvedObject.name<span class="o">=</span>tempest-tests-tempest-workflow-step-00-multi-thread-testing
+</code></pre></div></div> <p>The logs showed me that the script was downloading a nearly 1GB image and then trying to import it into OpenStack Glance, but it was timing out during the import phase.</p> <h2 id="step-3-handle-openshift-security-policies">Step 3: Handle OpenShift Security Policies</h2> <p>Now I needed to create a debug pod. OpenShift has strict security policies. I tried the simple approach:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>oc run debug-tempest <span class="nt">--image</span><span class="o">=</span>tempest-tests-tempest-workflow-step-00-multi-thread-testing <span class="nt">--rm</span> <span class="nt">-it</span> <span class="nt">--</span> /bin/bash
+</code></pre></div></div> <p>And got multiple security violations:</p> <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Warning: would violate PodSecurity "restricted:latest": allowPrivilegeEscalation != false...
+</code></pre></div></div> <p>I needed to follow OpenShift’s security requirements.</p> <h2 id="step-4-create-a-security-compliant-debug-pod">Step 4: Create a Security-Compliant Debug Pod</h2> <p>I created a proper YAML manifest that meets OpenShift’s security policies:</p> <div class="language-yaml highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="na">apiVersion</span><span class="pi">:</span> <span class="s">v1</span>
+<span class="na">kind</span><span class="pi">:</span> <span class="s">Pod</span>
+<span class="na">metadata</span><span class="pi">:</span>
+  <span class="na">name</span><span class="pi">:</span> <span class="s">debug-tempest</span>
+<span class="na">spec</span><span class="pi">:</span>
+  <span class="na">restartPolicy</span><span class="pi">:</span> <span class="s">Never</span>
+  <span class="na">securityContext</span><span class="pi">:</span>
+    <span class="na">runAsNonRoot</span><span class="pi">:</span> <span class="kc">true</span>
+    <span class="na">runAsUser</span><span class="pi">:</span> <span class="m">1001</span>
+    <span class="na">runAsGroup</span><span class="pi">:</span> <span class="m">1001</span>
+    <span class="na">fsGroup</span><span class="pi">:</span> <span class="m">1001</span>
+    <span class="na">seccompProfile</span><span class="pi">:</span>
+      <span class="na">type</span><span class="pi">:</span> <span class="s">RuntimeDefault</span>
+  <span class="na">containers</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">debug-tempest</span>
+    <span class="na">image</span><span class="pi">:</span> <span class="s">YOUR_ACTUAL_IMAGE_HERE</span>  <span class="c1"># Get this from the failed pod</span>
+    <span class="na">command</span><span class="pi">:</span> <span class="pi">[</span><span class="s2">"</span><span class="s">/bin/bash"</span><span class="pi">]</span>
+    <span class="na">args</span><span class="pi">:</span> <span class="pi">[</span><span class="s2">"</span><span class="s">-c"</span><span class="pi">,</span> <span class="s2">"</span><span class="s">sleep</span><span class="nv"> </span><span class="s">3600"</span><span class="pi">]</span>
+    <span class="na">securityContext</span><span class="pi">:</span>
+      <span class="na">allowPrivilegeEscalation</span><span class="pi">:</span> <span class="kc">false</span>
+      <span class="na">capabilities</span><span class="pi">:</span>
+        <span class="na">drop</span><span class="pi">:</span>
+        <span class="pi">-</span> <span class="s">ALL</span>
+      <span class="na">runAsNonRoot</span><span class="pi">:</span> <span class="kc">true</span>
+      <span class="na">runAsUser</span><span class="pi">:</span> <span class="m">1001</span>
+      <span class="na">runAsGroup</span><span class="pi">:</span> <span class="m">1001</span>
+      <span class="na">seccompProfile</span><span class="pi">:</span>
+        <span class="na">type</span><span class="pi">:</span> <span class="s">RuntimeDefault</span>
+    <span class="na">env</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">HOME</span>
+      <span class="na">value</span><span class="pi">:</span> <span class="s">/tmp</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">OS_CLOUD</span>
+      <span class="na">value</span><span class="pi">:</span> <span class="s">default</span>
+    <span class="na">volumeMounts</span><span class="pi">:</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">temp-dir</span>
+      <span class="na">mountPath</span><span class="pi">:</span> <span class="s">/tmp</span>
+    <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">var-lib-tempest</span>
+      <span class="na">mountPath</span><span class="pi">:</span> <span class="s">/var/lib/tempest</span>
+  <span class="na">volumes</span><span class="pi">:</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">temp-dir</span>
+    <span class="na">emptyDir</span><span class="pi">:</span> <span class="pi">{}</span>
+  <span class="pi">-</span> <span class="na">name</span><span class="pi">:</span> <span class="s">var-lib-tempest</span>
+    <span class="na">emptyDir</span><span class="pi">:</span> <span class="pi">{}</span>
+</code></pre></div></div> <p>To get the actual image name, I ran:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>oc get job tempest-tests-tempest-workflow-step-00-multi-thread-testing <span class="nt">-o</span> <span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.spec.template.spec.containers[0].image}'</span>
+</code></pre></div></div> <h2 id="step-5-alternative-one-line-command">Step 5: Alternative One-Line Command</h2> <p>If you prefer not to use YAML files, here is a one-line command:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code>oc run debug-tempest <span class="nt">--image</span><span class="o">=</span><span class="si">$(</span>oc get job tempest-tests-tempest-workflow-step-00-multi-thread-testing <span class="nt">-o</span> <span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.spec.template.spec.containers[0].image}'</span><span class="si">)</span> <span class="nt">--rm</span> <span class="nt">-it</span> <span class="nt">--restart</span><span class="o">=</span>Never <span class="nt">--overrides</span><span class="o">=</span><span class="s1">'
+{
+  "spec": {
+    "securityContext": {
+      "runAsNonRoot": true,
+      "runAsUser": 1001,
+      "seccompProfile": {"type": "RuntimeDefault"}
+    },
+    "containers": [{
+      "name": "debug-tempest",
+      "image": "'</span><span class="si">$(</span>oc get job tempest-tests-tempest-workflow-step-00-multi-thread-testing <span class="nt">-o</span> <span class="nv">jsonpath</span><span class="o">=</span><span class="s1">'{.spec.template.spec.containers[0].image}'</span><span class="si">)</span><span class="s1">'",
+      "command": ["/bin/bash"],
+      "securityContext": {
+        "allowPrivilegeEscalation": false,
+        "capabilities": {"drop": ["ALL"]},
+        "runAsNonRoot": true,
+        "runAsUser": 1001,
+        "seccompProfile": {"type": "RuntimeDefault"}
+      }
+    }]
+  }
+}'</span> <span class="nt">--</span> /bin/bash
+</code></pre></div></div> <h2 id="step-6-debug-the-actual-issue">Step 6: Debug the Actual Issue</h2> <p>Once I got into the debug pod, I could start investigating:</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Test if the image URL is accessible</span>
+curl <span class="nt">-I</span> http://a.b.c.d/dfg-network/custom_neutron_guest_rhel_8.4.qcow2
+
+<span class="c"># Check OpenStack connectivity</span>
+<span class="nb">.</span> openstackrc
+openstack image list
+
+<span class="c"># See if the image got partially created</span>
+openstack image show 11111111-1111-1111-1111-111111111111
+</code></pre></div></div> <h2 id="what-i-discovered">What I Discovered</h2> <p>In my case, I discovered that the <strong>Timeout was too short</strong>. A 997MB image needs more than 5 minutes to import on our storage backend. Check how much time it takes and add 20% spear time.</p> <div class="language-bash highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="c"># Manual image upload</span>
+<span class="nb">time </span>openstack image create <span class="se">\</span>
+  <span class="nt">--disk-format</span> qcow2 <span class="se">\</span>
+  <span class="nt">--id</span> 11111111-1111-1111-1111-111111111111 <span class="se">\</span>
+  <span class="nt">--file</span> custom_neutron_guest_rhel_8.4.qcow2 <span class="se">\</span>
+  <span class="nt">--public</span> <span class="se">\</span>
+  custom_neutron_guest_rhel_8.4
+</code></pre></div></div> <h2 id="lessons-learned">Lessons Learned</h2> <ol> <li> <strong>OpenShift security is not optional</strong> - Learn to work with it, not against it</li> <li> <strong>Image imports can be slow</strong> - Plan your timeouts accordingly</li> <li> <strong>oc debug is your friend</strong> - When it works with the security context</li> </ol> <h2 id="bonus-tip">Bonus Tip</h2> <p>If you’re running into similar issues regularly, consider pre-loading your test images during cluster setup rather than during test execution. Your future self will thank you when tests aren’t timing out at 2 AM.</p> <p>Remember, debugging in OpenShift is like debugging anywhere else, except with more YAML and more security warnings. But hey, at least the error messages are usually pretty clear about what’s wrong!</p> <p>Happy debugging, and may your pods always run to completion!</p> </body></html>
